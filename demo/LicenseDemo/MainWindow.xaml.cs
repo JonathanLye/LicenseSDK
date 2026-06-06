@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using LicenseSDK;
@@ -9,16 +10,29 @@ namespace LicenseDemo;
 public partial class MainWindow : Window
 {
     private LicenseManager? _license;
+    private static readonly string _logPath = Path.Combine(
+        AppDomain.CurrentDomain.BaseDirectory, "crash.log");
 
     public MainWindow()
     {
-        InitializeComponent();
-        Loaded += OnLoaded;
+        try
+        {
+            InitializeComponent();
+            Loaded += OnLoaded;
+        }
+        catch (Exception ex)
+        {
+            File.WriteAllText(_logPath, $"CTOR: {ex}");
+            MessageBox.Show($"CTOR: {ex.GetType().Name}: {ex.Message}", "Crash");
+        }
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        _license = BuildManager();
+        try
+        {
+            File.AppendAllText(_logPath, $"{DateTime.UtcNow:HH:mm:ss.fff} OnLoaded\n");
+            _license = BuildManager();
 
         // Display hardware fingerprint immediately — no network required
         var fp = _license.Fingerprint;
@@ -34,7 +48,15 @@ public partial class MainWindow : Window
 
         // Auto-verify on startup
         await RunVerify();
+
+        File.AppendAllText(_logPath, $"{DateTime.UtcNow:HH:mm:ss.fff} Done\n");
     }
+    catch (Exception ex)
+    {
+        File.WriteAllText(_logPath, $"{DateTime.UtcNow:HH:mm:ss.fff} ERROR {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+        MessageBox.Show($"{ex.GetType().Name}: {ex.Message}", "Crash");
+    }
+}
 
     private async void Activate_Click(object sender, RoutedEventArgs e)
     {

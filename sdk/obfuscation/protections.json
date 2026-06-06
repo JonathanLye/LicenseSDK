@@ -4,7 +4,7 @@
     { "Name": "AntiDe4dot",       "Enabled": true },
     { "Name": "FullRenamer",      "Enabled": false },
     { "Name": "CallToCalli",      "Enabled": true },
-    { "Name": "ControlFlow",      "Enabled": true },
+    { "Name": "ControlFlow",      "Enabled": false },
     { "Name": "BitDotNet",        "Enabled": true },
     { "Name": "BitTimeDateStamp", "Enabled": true }
   ]
