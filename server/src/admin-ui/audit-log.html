@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>审计日志 — LicenseSDK 管理后台</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <h1>LicenseSDK <small>管理后台</small></h1>
+    <nav>
+      <a data-page="dashboard" href="dashboard.html">📊 仪表盘</a>
+      <a data-page="products" href="products.html">📦 产品管理</a>
+      <a data-page="licenses" href="licenses.html">🔑 License 管理</a>
+      <a data-page="audit-log" href="audit-log.html">📋 审计日志</a>
+    </nav>
+    <div class="logout"><a href="#" onclick="logout()">🚪 退出登录</a></div>
+  </aside>
+  <main class="main-content">
+    <h2 class="page-title">审计日志</h2>
+
+    <!-- Filter -->
+    <div class="card">
+      <div class="form-inline">
+        <div class="form-group">
+          <label>筛选 License ID</label>
+          <input type="text" id="filterLicenseId" placeholder="输入 License ID 筛选…">
+        </div>
+        <div class="form-group">
+          <label>事件类型</label>
+          <select id="filterEventType">
+            <option value="">全部</option>
+            <option value="activate">activate</option>
+            <option value="verify">verify</option>
+            <option value="heartbeat">heartbeat</option>
+            <option value="deactivate">deactivate</option>
+            <option value="reject">reject</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="loadLogs()" style="margin-bottom:0">筛选</button>
+        <button onclick="resetFilter()" style="margin-bottom:0">重置</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card">
+      <h3>事件记录</h3>
+      <div id="logContainer"><div class="loading">加载中</div></div>
+    </div>
+  </main>
+</div>
+
+<script src="admin.js"></script>
+<script>
+requireAuth();
+highlightNav('audit-log');
+
+function resetFilter() {
+  document.getElementById('filterLicenseId').value = '';
+  document.getElementById('filterEventType').value = '';
+  loadLogs();
+}
+
+async function loadLogs() {
+  const container = document.getElementById('logContainer');
+  const licenseId = document.getElementById('filterLicenseId').value.trim();
+  const eventType = document.getElementById('filterEventType').value;
+
+  try {
+    let path = '/audit-logs';
+    const params = [];
+    if (licenseId) params.push(`license_id=${encodeURIComponent(licenseId)}`);
+    if (params.length) path += '?' + params.join('&');
+
+    const data = await api(path);
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="empty-state">暂无审计日志</div>';
+      return;
+    }
+
+    let filtered = data;
+    if (eventType) filtered = filtered.filter(l => l.event_type === eventType);
+
+    container.innerHTML = `<div class="meta-line">共 ${filtered.length} 条记录（显示最近 200 条）</div>
+      <table>
+        <thead><tr><th>时间</th><th>事件类型</th><th>成功</th><th>IP</th><th>License ID</th><th>激活 ID</th><th>详情</th></tr></thead>
+        <tbody>${filtered.map(l => `<tr>
+          <td class="mono">${fmtDate(l.created_at)}</td>
+          <td><span class="badge ${l.event_type === 'reject' ? 'badge-revoked' : 'badge-active'}">${l.event_type}</span></td>
+          <td>${fmtBool(l.success)}</td>
+          <td class="mono">${l.ip_address ?? '—'}</td>
+          <td class="mono" style="font-size:11px">${(l.license_id || '').substring(0, 8)}…</td>
+          <td class="mono" style="font-size:11px">${(l.activation_id || '').substring(0, 8)}…</td>
+          <td class="mono truncate" style="font-size:11px">${l.detail ? JSON.stringify(l.detail) : '—'}</td>
+        </tr>`).join('')}</tbody></table>`;
+  } catch (err) { showError(container, err.message); }
+}
+loadLogs();
+</script>
+</body>
+</html>

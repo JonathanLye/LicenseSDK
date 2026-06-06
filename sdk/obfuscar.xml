@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Obfuscator>
+  <Var name="InPath"  value="LicenseSDK\bin\Release\net10.0-windows" />
+  <Var name="OutPath" value="obfuscated" />
+
+  <Var name="RenameFields"    value="true" />
+  <Var name="RenameProperties" value="true" />
+  <Var name="RenameEvents"    value="true" />
+  <Var name="KeepPublicApi"   value="false" />
+  <Var name="HideStrings"     value="true" />
+  <Var name="MarkedOnly"      value="false" />
+
+  <Module file="$(InPath)\LicenseSDK.dll">
+    <SkipType name="LicenseSDK.LicenseManager" />
+    <SkipType name="LicenseSDK.LicenseConfig" />
+    <SkipType name="LicenseSDK.ActivationResult" />
+    <SkipType name="LicenseSDK.VerificationResult" />
+    <SkipType name="LicenseSDK.LicenseSecurityException" />
+    <SkipType name="LicenseSDK.Fingerprint.FingerprintData" />
+    <SkipType name="LicenseSDK.Fingerprint.FingerprintHasher" />
+    <SkipType name="LicenseSDK.Fingerprint.FingerprintCollector" />
+  </Module>
+</Obfuscator>

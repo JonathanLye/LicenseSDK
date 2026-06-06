@@ -1,0 +1,6 @@
+{
+  "Watermark": false,
+  "OutputDirectoryName": "obfuscated",
+  "NoInliningMethodObfuscationExcluding": true,
+  "ObfuscationAttributeObfuscationExcluding": true
+}

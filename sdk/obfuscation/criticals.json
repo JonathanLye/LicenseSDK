@@ -1,0 +1,38 @@
+{
+  "UseCriticalBaseTypes": true,
+  "CriticalBaseTypes": [
+    "Window*",
+    "UserControl*",
+    "Page*",
+    "Application*",
+    "FrameworkElement*",
+    "UIElement*",
+    "ResourceDictionary*",
+    "Style*",
+    "DataTemplate*",
+    "ControlTemplate*"
+  ],
+  "UseCriticalMethods": true,
+  "CriticalMethods": [
+    "InitializeComponent",
+    "Main"
+  ],
+  "UseCriticalMethodsStartsWith": true,
+  "CriticalMethodsStartsWith": [
+    "get_",
+    "set_",
+    "add_",
+    "remove_"
+  ],
+  "UseCriticalAttributes": true,
+  "CriticalAttributes": [
+    { "Namespace": "System.Windows.Markup", "Name": "ContentPropertyAttribute" },
+    { "Namespace": "System.ComponentModel", "Name": "TypeConverterAttribute" }
+  ],
+  "UseCriticalModelAttributes": true,
+  "CriticalModelAttributes": [
+    { "Namespace": "System", "Name": "SerializableAttribute" }
+  ],
+  "UseCriticalInterfaces": true,
+  "CriticalInterfaces": []
+}

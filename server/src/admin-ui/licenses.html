@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>License 管理 — LicenseSDK 管理后台</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <h1>LicenseSDK <small>管理后台</small></h1>
+    <nav>
+      <a data-page="dashboard" href="dashboard.html">📊 仪表盘</a>
+      <a data-page="products" href="products.html">📦 产品管理</a>
+      <a data-page="licenses" href="licenses.html">🔑 License 管理</a>
+      <a data-page="audit-log" href="audit-log.html">📋 审计日志</a>
+    </nav>
+    <div class="logout"><a href="#" onclick="logout()">🚪 退出登录</a></div>
+  </aside>
+  <main class="main-content">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="page-title" style="margin-bottom:0">License 管理</h2>
+      <button class="btn-primary" onclick="showIssueForm()">+ 签发 License</button>
+    </div>
+
+    <!-- Issue form (hidden) -->
+    <div id="issueForm" class="card" style="display:none">
+      <h3>签发新 License</h3>
+      <div class="form-group">
+        <label>产品</label>
+        <select id="issueProduct"></select>
+      </div>
+      <div class="form-group">
+        <label>License Key</label>
+        <input type="text" id="issueKey" placeholder="XXXX-XXXX-XXXX-XXXX">
+      </div>
+      <div class="form-inline">
+        <div class="form-group">
+          <label>类型</label>
+          <select id="issueType">
+            <option value="single">Single（单设备）</option>
+            <option value="volume">Volume（多设备）</option>
+            <option value="subscription">Subscription（订阅）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>最大激活数</label>
+          <input type="number" id="issueMax" value="1" min="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>过期时间（可选）</label>
+        <input type="datetime-local" id="issueExpires">
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-primary" onclick="issueLicense()">签发</button>
+        <button onclick="hideIssueForm()">取消</button>
+      </div>
+    </div>
+
+    <!-- License list -->
+    <div class="card">
+      <h3>License 列表</h3>
+      <div id="licenseList"><div class="loading">加载中</div></div>
+    </div>
+  </main>
+</div>
+
+<script src="admin.js"></script>
+<script>
+requireAuth();
+highlightNav('licenses');
+
+let productsCache = [];
+
+function showIssueForm() { document.getElementById('issueForm').style.display = 'block'; loadProductSelect(); }
+function hideIssueForm() { document.getElementById('issueForm').style.display = 'none'; }
+
+async function loadProductSelect() {
+  try {
+    const data = await api('/products');
+    productsCache = data ?? [];
+    const sel = document.getElementById('issueProduct');
+    sel.innerHTML = productsCache.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    if (productsCache.length === 0) {
+      sel.innerHTML = '<option value="">— 请先创建产品 —</option>';
+    }
+  } catch (err) { toast('加载产品列表失败: ' + err.message, 'error'); }
+}
+
+async function issueLicense() {
+  const product_id = document.getElementById('issueProduct').value;
+  if (!product_id) { toast('请选择产品', 'warning'); return; }
+  const license_key = document.getElementById('issueKey').value.trim();
+  if (!license_key) { toast('请输入 License Key', 'warning'); return; }
+  const type = document.getElementById('issueType').value;
+  const max_activations = parseInt(document.getElementById('issueMax').value) || 1;
+  const expiresRaw = document.getElementById('issueExpires').value;
+  const expires_at = expiresRaw ? new Date(expiresRaw).toISOString() : null;
+
+  try {
+    await api('/licenses', {
+      method: 'POST',
+      body: JSON.stringify({ product_id, license_key, type, max_activations, expires_at }),
+    });
+    toast('License 签发成功');
+    document.getElementById('issueKey').value = '';
+    hideIssueForm();
+    loadLicenses();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function revokeLicense(id) {
+  if (!confirm('确定要吊销此 License 吗？此操作不可撤销。')) return;
+  try {
+    await api(`/licenses/${id}/revoke`, { method: 'POST' });
+    toast('已吊销');
+    loadLicenses();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function loadLicenses() {
+  const container = document.getElementById('licenseList');
+  try {
+    const data = await api('/licenses');
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="empty-state">暂无 License，请签发一个</div>';
+      return;
+    }
+    const productMap = {};
+    productsCache.forEach(p => { productMap[p.id] = p.name; });
+
+    let html = `<table>
+      <thead><tr><th>Key</th><th>产品</th><th>类型</th><th>状态</th><th>激活数</th><th>过期</th><th>创建时间</th><th>操作</th></tr></thead>
+      <tbody>`;
+    data.forEach(l => {
+      const actCount = l.activations
+        ? (typeof l.activations === 'number' ? l.activations : l.activations.count ?? 0)
+        : 0;
+      const isExpired = l.expires_at && new Date(l.expires_at) < new Date();
+      const status = isExpired && l.status === 'active' ? 'expired' : l.status;
+      const badgeClass = status === 'active' ? 'badge-active' : status === 'revoked' ? 'badge-revoked' : 'badge-deactivated';
+      html += `<tr>
+        <td class="mono">${l.license_key}</td>
+        <td>${productMap[l.product_id] || l.product_id?.substring(0, 8) || '—'}</td>
+        <td>${l.type}</td>
+        <td><span class="badge ${badgeClass}">${status}</span></td>
+        <td>${actCount} / ${l.max_activations}</td>
+        <td class="mono">${fmtDate(l.expires_at)}</td>
+        <td class="mono">${fmtDate(l.created_at)}</td>
+        <td>
+          ${status === 'active'
+            ? `<button class="btn-danger btn-sm" onclick="revokeLicense('${l.id}')">吊销</button>
+               <button class="btn-sm" onclick="viewActivations('${l.id}')" style="margin-left:4px">激活</button>`
+            : '<span class="text-muted">—</span>'}
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (err) { showError(container, err.message); }
+}
+
+function viewActivations(licenseId) {
+  // Store license ID and navigate to activations page (admin-jump)
+  sessionStorage.setItem('viewLicenseId', licenseId);
+  window.location.href = '/admin/activations.html';
+}
+
+loadLicenses();
+</script>
+</body>
+</html>

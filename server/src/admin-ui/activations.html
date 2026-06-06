@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>激活详情 — LicenseSDK 管理后台</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <h1>LicenseSDK <small>管理后台</small></h1>
+    <nav>
+      <a data-page="dashboard" href="dashboard.html">📊 仪表盘</a>
+      <a data-page="products" href="products.html">📦 产品管理</a>
+      <a data-page="licenses" href="licenses.html">🔑 License 管理</a>
+      <a data-page="audit-log" href="audit-log.html">📋 审计日志</a>
+    </nav>
+    <div class="logout"><a href="#" onclick="logout()">🚪 退出登录</a></div>
+  </aside>
+  <main class="main-content">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="page-title" style="margin-bottom:0">激活详情</h2>
+      <a href="licenses.html" class="btn">← 返回 License 列表</a>
+    </div>
+
+    <!-- License info -->
+    <div id="licenseInfo" class="card" style="display:none">
+      <h3>License 信息</h3>
+      <div id="licenseInfoContent"></div>
+    </div>
+
+    <!-- Activations -->
+    <div class="card">
+      <h3>激活列表</h3>
+      <div id="activationList"><div class="loading">加载中</div></div>
+    </div>
+
+    <!-- Activation detail modal (inline) -->
+    <div id="fpDetail" class="card" style="display:none; margin-top:16px">
+      <div class="flex justify-between items-center">
+        <h3>指纹详情</h3>
+        <button class="btn-sm" onclick="closeFpDetail()">关闭</button>
+      </div>
+      <pre id="fpDetailContent" class="mono" style="margin-top:8px; background:#111; padding:12px; border-radius:4px; overflow-x:auto; font-size:12px; color:#ccc; white-space:pre-wrap;"></pre>
+    </div>
+  </main>
+</div>
+
+<script src="admin.js"></script>
+<script>
+requireAuth();
+highlightNav('licenses');
+
+const licenseId = sessionStorage.getItem('viewLicenseId');
+
+async function loadPage() {
+  if (!licenseId) {
+    document.getElementById('activationList').innerHTML = '<div class="empty-state">未指定 License。请从 <a href="licenses.html">License 管理</a> 中选择一个查看。</div>';
+    return;
+  }
+
+  try {
+    // Load license info
+    const licenses = await api('/licenses');
+    const lic = (licenses ?? []).find(l => l.id === licenseId);
+    if (lic) {
+      document.getElementById('licenseInfo').style.display = 'block';
+      document.getElementById('licenseInfoContent').innerHTML = `
+        <table>
+          <tr><td style="border:none;padding:4px 12px 4px 0;width:120px">License Key</td><td style="border:none" class="mono">${lic.license_key}</td></tr>
+          <tr><td style="border:none;padding:4px 12px 4px 0">类型</td><td style="border:none">${lic.type}</td></tr>
+          <tr><td style="border:none;padding:4px 12px 4px 0">状态</td><td style="border:none"><span class="badge badge-${lic.status === 'active' ? 'active' : 'revoked'}">${lic.status}</span></td></tr>
+          <tr><td style="border:none;padding:4px 12px 4px 0">最大激活数</td><td style="border:none">${lic.max_activations}</td></tr>
+          <tr><td style="border:none;padding:4px 12px 4px 0">过期</td><td style="border:none">${fmtDate(lic.expires_at)}</td></tr>
+        </table>`;
+    }
+  } catch (err) { /* non-critical */ }
+
+  // Load activations
+  try {
+    const data = await api(`/licenses/${licenseId}/activations`);
+    const container = document.getElementById('activationList');
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="empty-state">此 License 暂无激活记录</div>';
+      return;
+    }
+    container.innerHTML = `<div class="meta-line">共 ${data.length} 条激活记录</div>
+      <table>
+        <thead><tr><th>激活 ID</th><th>状态</th><th>指纹哈希</th><th>激活时间</th><th>最后心跳</th><th>操作</th></tr></thead>
+        <tbody>${data.map(a => `<tr>
+          <td class="mono" style="font-size:11px">${a.id.substring(0, 8)}…</td>
+          <td><span class="badge ${a.status === 'active' ? 'badge-active' : 'badge-deactivated'}">${a.status}</span></td>
+          <td class="mono" style="font-size:11px">${(a.machine_fingerprint_hash || '').substring(0, 16)}…</td>
+          <td class="mono">${fmtDate(a.activated_at)}</td>
+          <td class="mono">${fmtDate(a.last_heartbeat)}</td>
+          <td>
+            <button class="btn-sm" onclick="showFingerprint('${encodeURIComponent(JSON.stringify(a.fingerprint_detail || {}))}')">指纹</button>
+            ${a.status === 'active' ? `<button class="btn-danger btn-sm" onclick="deactivate('${a.id}')" style="margin-left:4px">解绑</button>` : ''}
+          </td>
+        </tr>`).join('')}</tbody></table>`;
+  } catch (err) { showError(document.getElementById('activationList'), err.message); }
+}
+
+function showFingerprint(fpJson) {
+  try {
+    const fp = JSON.parse(decodeURIComponent(fpJson));
+    document.getElementById('fpDetail').style.display = 'block';
+    document.getElementById('fpDetailContent').textContent = JSON.stringify(fp, null, 2);
+  } catch (e) {
+    toast('无法解析指纹数据', 'error');
+  }
+}
+
+function closeFpDetail() {
+  document.getElementById('fpDetail').style.display = 'none';
+}
+
+async function deactivate(activationId) {
+  if (!confirm('确定要强制解绑此设备吗？')) return;
+  try {
+    await api(`/activations/${activationId}/deactivate`, { method: 'POST' });
+    toast('已强制解绑');
+    loadPage();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+loadPage();
+</script>
+</body>
+</html>

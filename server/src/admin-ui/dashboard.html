@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>仪表盘 — LicenseSDK 管理后台</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <h1>LicenseSDK <small>管理后台</small></h1>
+    <nav>
+      <a data-page="dashboard" href="dashboard.html">📊 仪表盘</a>
+      <a data-page="products" href="products.html">📦 产品管理</a>
+      <a data-page="licenses" href="licenses.html">🔑 License 管理</a>
+      <a data-page="audit-log" href="audit-log.html">📋 审计日志</a>
+    </nav>
+    <div class="logout"><a href="#" onclick="logout()">🚪 退出登录</a></div>
+  </aside>
+  <main class="main-content">
+    <h2 class="page-title">仪表盘</h2>
+    <div class="card-row" id="statsCards"></div>
+
+    <div class="card">
+      <h3>最近审计事件</h3>
+      <div id="recentLogs"><div class="loading">加载中</div></div>
+    </div>
+  </main>
+</div>
+
+<script src="admin.js"></script>
+<script>
+requireAuth();
+highlightNav('dashboard');
+
+async function loadDashboard() {
+  try {
+    const [licenses, products, logs] = await Promise.all([
+      api('/licenses'),
+      api('/products'),
+      api('/audit-logs'),
+    ]);
+
+    const totalLicenses = licenses?.length ?? 0;
+    const activeLicenses = licenses?.filter(l => l.status === 'active').length ?? 0;
+    const revokedLicenses = licenses?.filter(l => l.status === 'revoked').length ?? 0;
+    const totalProducts = products?.length ?? 0;
+
+    // Count activations across all licenses
+    let totalActivations = 0;
+    let activeActivations = 0;
+    if (licenses) {
+      for (const l of licenses) {
+        // If the query returns activations count
+        if (l.activations) {
+          const cnt = typeof l.activations === 'number' ? l.activations : l.activations.count ?? 0;
+          totalActivations += cnt;
+        }
+      }
+    }
+
+    document.getElementById('statsCards').innerHTML = `
+      <div class="card"><h3>License 总数</h3><div class="value">${totalLicenses}</div></div>
+      <div class="card"><h3>活跃 License</h3><div class="value">${activeLicenses}</div></div>
+      <div class="card"><h3>已吊销</h3><div class="value" style="color:var(--danger)">${revokedLicenses}</div></div>
+      <div class="card"><h3>产品</h3><div class="value">${totalProducts}</div></div>
+    `;
+
+    // Recent audit logs (last 10)
+    const recent = (logs ?? []).slice(0, 10);
+    document.getElementById('recentLogs').innerHTML = recent.length === 0
+      ? '<div class="empty-state">暂无审计事件</div>'
+      : `<table>
+          <thead><tr><th>时间</th><th>事件</th><th>成功</th><th>IP</th><th>详情</th></tr></thead>
+          <tbody>${recent.map(l => `<tr>
+            <td class="mono">${fmtDate(l.created_at)}</td>
+            <td><span class="badge badge-${l.event_type === 'reject' ? 'revoked' : 'active'}">${l.event_type}</span></td>
+            <td>${fmtBool(l.success)}</td>
+            <td class="mono">${l.ip_address ?? '—'}</td>
+            <td class="mono truncate">${l.detail ? JSON.stringify(l.detail) : '—'}</td>
+          </tr>`).join('')}</tbody></table>`;
+  } catch (err) {
+    showError(document.getElementById('statsCards'), '加载失败: ' + err.message);
+  }
+}
+loadDashboard();
+</script>
+</body>
+</html>

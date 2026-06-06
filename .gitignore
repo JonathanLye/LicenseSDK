@@ -1,0 +1,38 @@
+# Node / Server
+node_modules/
+dist/
+.env
+.env.local
+*.log
+npm-debug.log*
+
+# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+.vs/
+_ReSharper*/
+*.DotSettings.user
+*.nupkg
+*.snupkg
+TestResults/
+[Pp]ublish/
+[Rr]elease/
+[Dd]ebug/
+
+# Visual Studio / Rider
+.idea/
+*.sln.iml
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build artifacts
+sdk/obfuscated/
+*.log
+.claude/

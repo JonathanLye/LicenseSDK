@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LicenseSDK 管理后台</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <h1>🔑 LicenseSDK</h1>
+    <p>管理后台 — 输入管理员密钥以继续</p>
+    <div id="loginError" class="login-error"></div>
+    <div class="form-group">
+      <label for="secretInput">Admin Secret</label>
+      <input type="password" id="secretInput" placeholder="输入管理员密钥…" autofocus
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="btn-primary" onclick="doLogin()" style="width:100%">登录</button>
+    <div class="form-group mt-4">
+      <label>
+        <input type="checkbox" id="rememberCheck">
+        记住此密钥（本地存储）
+      </label>
+    </div>
+  </div>
+</div>
+
+<script>
+function doLogin() {
+  const secret = document.getElementById('secretInput').value.trim();
+  const errorEl = document.getElementById('loginError');
+  if (!secret) { errorEl.textContent = '请输入管理员密钥'; errorEl.style.display = 'block'; return; }
+
+  // Verify by calling a simple API
+  fetch('/api/v1/admin/products', { headers: { 'X-Admin-Secret': secret } })
+    .then(res => {
+      if (res.status === 401) { throw new Error('密钥无效'); }
+      if (!res.ok) { throw new Error('验证失败'); }
+      sessionStorage.setItem('adminSecret', secret);
+      if (document.getElementById('rememberCheck').checked) {
+        localStorage.setItem('adminSecret', secret);
+      }
+      window.location.href = '/admin/dashboard.html';
+    })
+    .catch(err => {
+      errorEl.textContent = err.message;
+      errorEl.style.display = 'block';
+    });
+}
+</script>
+</body>
+</html>

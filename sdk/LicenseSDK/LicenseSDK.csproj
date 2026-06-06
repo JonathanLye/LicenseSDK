@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>LicenseSDK</AssemblyName>
+    <RootNamespace>LicenseSDK</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="9.0.5" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="LicenseDemo" />
+  </ItemGroup>
+
+  <!-- Obfuscate: 先 Obfuscar 重命名，再 BitMono CallToCalli 控制流混淆 -->
+  <Target Name="ObfuscateAfterBuild" AfterTargets="Build"
+          Condition="'$(Configuration)'=='Release'">
+    <Exec Command="$(MSBuildProjectDirectory)\..\obfuscate.cmd"
+          ContinueOnError="true">
+      <Output TaskParameter="ExitCode" PropertyName="ObfuscateExitCode"/>
+    </Exec>
+    <Message Text="⚠ Obfuscation skipped or failed. See obfuscate.cmd for details."
+             Condition="$(ObfuscateExitCode) != 0" Importance="High"/>
+  </Target>
+
+</Project>

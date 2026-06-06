@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>产品管理 — LicenseSDK 管理后台</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <h1>LicenseSDK <small>管理后台</small></h1>
+    <nav>
+      <a data-page="dashboard" href="dashboard.html">📊 仪表盘</a>
+      <a data-page="products" href="products.html">📦 产品管理</a>
+      <a data-page="licenses" href="licenses.html">🔑 License 管理</a>
+      <a data-page="audit-log" href="audit-log.html">📋 审计日志</a>
+    </nav>
+    <div class="logout"><a href="#" onclick="logout()">🚪 退出登录</a></div>
+  </aside>
+  <main class="main-content">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="page-title" style="margin-bottom:0">产品管理</h2>
+      <button class="btn-primary" onclick="showCreateForm()">+ 创建产品</button>
+    </div>
+
+    <!-- Create form (hidden by default) -->
+    <div id="createForm" class="card" style="display:none">
+      <h3>创建新产品</h3>
+      <div class="form-group">
+        <label>产品名称</label>
+        <input type="text" id="prodName" placeholder="例如: MyApp v1.0">
+      </div>
+      <div class="form-group">
+        <label>描述（可选）</label>
+        <textarea id="prodDesc" placeholder="产品描述…"></textarea>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-primary" onclick="createProduct()">创建</button>
+        <button onclick="hideCreateForm()">取消</button>
+      </div>
+    </div>
+
+    <!-- Product list -->
+    <div class="card">
+      <h3>产品列表</h3>
+      <div id="productList"><div class="loading">加载中</div></div>
+    </div>
+  </main>
+</div>
+
+<script src="admin.js"></script>
+<script>
+requireAuth();
+highlightNav('products');
+
+function showCreateForm() { document.getElementById('createForm').style.display = 'block'; }
+function hideCreateForm() { document.getElementById('createForm').style.display = 'none'; }
+
+async function createProduct() {
+  const name = document.getElementById('prodName').value.trim();
+  if (!name) { toast('请输入产品名称', 'warning'); return; }
+  const desc = document.getElementById('prodDesc').value.trim();
+  try {
+    await api('/products', { method: 'POST', body: JSON.stringify({ name, description: desc || undefined }) });
+    toast('产品创建成功');
+    document.getElementById('prodName').value = '';
+    document.getElementById('prodDesc').value = '';
+    hideCreateForm();
+    loadProducts();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function loadProducts() {
+  const container = document.getElementById('productList');
+  try {
+    const data = await api('/products');
+    container.innerHTML = data && data.length > 0
+      ? `<table>
+          <thead><tr><th>名称</th><th>描述</th><th>创建时间</th><th>ID</th></tr></thead>
+          <tbody>${data.map(p => `<tr>
+            <td>${p.name}</td>
+            <td class="text-muted">${p.description || '—'}</td>
+            <td class="mono">${fmtDate(p.created_at)}</td>
+            <td class="mono" style="font-size:11px">${p.id}</td>
+          </tr>`).join('')}</tbody></table>`
+      : '<div class="empty-state">暂无产品，请创建一个</div>';
+  } catch (err) { showError(container, err.message); }
+}
+loadProducts();
+</script>
+</body>
+</html>
