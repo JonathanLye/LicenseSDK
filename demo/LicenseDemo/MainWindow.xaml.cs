@@ -93,4 +93,9 @@ public partial class MainWindow : Window
         SharedSecret = KeyProtector.Reveal(),
         ProductId    = "11111111-1111-1111-1111-111111111111",
     });
+
+    private void FpWindowsProductId_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+
+    }
 }
