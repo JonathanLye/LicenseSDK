@@ -96,7 +96,7 @@
                     <TextBox x:Name="FpMachineGuid" Style="{StaticResource FpValue}"/>
 
                     <TextBlock Style="{StaticResource FpLabel}">Windows ProductId（权重 1，仅辅助）</TextBlock>
-                    <TextBox x:Name="FpWindowsProductId" Style="{StaticResource FpValue}"/>
+                    <TextBox x:Name="FpWindowsProductId" Style="{StaticResource FpValue}" TextChanged="FpWindowsProductId_TextChanged"/>
 
                     <TextBlock Style="{StaticResource FpLabel}">物理网卡 MAC — 所有网卡，任一匹配得分（权重 1）</TextBlock>
                     <TextBox x:Name="FpMac" Style="{StaticResource FpValue}"/>
