@@ -23,7 +23,7 @@
     <Copy SourceFiles="$(_ObfuscatedSDK)" DestinationFiles="$(_OutputDir)\LicenseSDK.dll"
           Condition="Exists('$(_ObfuscatedSDK)')" />
     <!-- 2. BitMono 混淆 Demo.dll -->
-    <Exec Command="bitmono.console -f &quot;$(TargetPath)&quot; -l &quot;$(_OutputDir)&quot; -o &quot;$(MSBuildProjectDirectory)\..\obfuscated-demo&quot; --protections-file &quot;$(MSBuildProjectDirectory)\..\..\sdk\obfuscation\protections.json&quot; --criticals-file &quot;$(MSBuildProjectDirectory)\..\..\sdk\obfuscation\criticals.json&quot; --obfuscation-file &quot;$(MSBuildProjectDirectory)\..\..\sdk\obfuscation\obfuscation.json&quot;"
+    <Exec Command="bitmono.console -f &quot;$(TargetPath)&quot; -l &quot;$(_OutputDir)&quot; -o &quot;$(MSBuildProjectDirectory)\..\obfuscated-demo&quot; --protections-file &quot;$(MSBuildProjectDirectory)\..\obfuscation\protections.json&quot; --criticals-file &quot;$(MSBuildProjectDirectory)\..\..\sdk\obfuscation\criticals.json&quot; --obfuscation-file &quot;$(MSBuildProjectDirectory)\..\..\sdk\obfuscation\obfuscation.json&quot;"
           ContinueOnError="true" />
   </Target>
 

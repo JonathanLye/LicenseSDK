@@ -1,0 +1,11 @@
+{
+  "Protections": [
+    { "Name": "AntiILdasm",       "Enabled": true },
+    { "Name": "AntiDe4dot",       "Enabled": true },
+    { "Name": "FullRenamer",      "Enabled": false },
+    { "Name": "CallToCalli",      "Enabled": false },
+    { "Name": "ControlFlow",      "Enabled": false },
+    { "Name": "BitDotNet",        "Enabled": true },
+    { "Name": "BitTimeDateStamp", "Enabled": true }
+  ]
+}
