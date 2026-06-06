@@ -72,7 +72,7 @@ function fmtDate(iso) {
   return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-function fmtBool(v) { return v ? '✓' : '✗'; }
+function fmtBool(v) { return v ? '<svg class="status-icon" viewBox="0 0 18 18"><path d="M3 9l5 5 8-9"/></svg>' : '<svg class="status-icon" viewBox="0 0 18 18"><path d="M4 4l10 10"/><path d="M14 4l-10 10"/></svg>'; }
 
 // ── Table render helpers ──────────────────────────────────────────
 function renderTable(headers, rows, emptyMsg = '暂无数据') {

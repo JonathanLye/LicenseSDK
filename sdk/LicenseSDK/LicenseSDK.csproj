@@ -26,7 +26,7 @@
           ContinueOnError="true">
       <Output TaskParameter="ExitCode" PropertyName="ObfuscateExitCode"/>
     </Exec>
-    <Message Text="⚠ Obfuscation skipped or failed. See obfuscate.cmd for details."
+    <Message Text="[WARN] Obfuscation skipped or failed. See obfuscate.cmd for details."
              Condition="$(ObfuscateExitCode) != 0" Importance="High"/>
   </Target>
 

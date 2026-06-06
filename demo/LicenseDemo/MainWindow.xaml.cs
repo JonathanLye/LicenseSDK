@@ -68,9 +68,9 @@ public partial class MainWindow : Window
         var result = await _license.ActivateAsync(key);
 
         if (result.Success)
-            SetStatus($"✓ 激活成功  |  有效期至: {result.ExpiresAt ?? "永久"}", "#6fcf6f", "#1a2a1a", "#2a4a2a");
+            SetStatus($"[OK] 激活成功  |  有效期至: {result.ExpiresAt ?? "永久"}", "#6fcf6f", "#1a2a1a", "#2a4a2a");
         else
-            SetStatus($"✗ 激活失败: {result.Error}", "#cf6f6f", "#2a1a1a", "#4a2a2a");
+            SetStatus($"[FAIL] 激活失败: {result.Error}", "#cf6f6f", "#2a1a1a", "#4a2a2a");
     }
 
     private async void Verify_Click(object sender, RoutedEventArgs e) => await RunVerify();
@@ -80,7 +80,7 @@ public partial class MainWindow : Window
         SetStatus("正在解绑…", "#e0e060", "#2a2a1a", "#4a4a2a");
         _license ??= BuildManager();
         var ok = await _license.DeactivateAsync();
-        SetStatus(ok ? "✓ 已解绑，本设备激活名额已释放" : "✗ 解绑失败（此设备可能未激活）",
+        SetStatus(ok ? "[OK] 已解绑，本设备激活名额已释放" : "[FAIL] 解绑失败（此设备可能未激活）",
             ok ? "#6fcf6f" : "#cf6f6f",
             ok ? "#1a2a1a" : "#2a1a1a",
             ok ? "#2a4a2a" : "#4a2a2a");
@@ -95,11 +95,11 @@ public partial class MainWindow : Window
         if (result.Valid)
         {
             var offline = result.IsOffline ? " [离线宽限期]" : "";
-            SetStatus($"✓ 许可证有效{offline}  |  有效期至: {result.ExpiresAt ?? "永久"}", "#6fcf6f", "#1a2a1a", "#2a4a2a");
+            SetStatus($"[OK] 许可证有效{offline}  |  有效期至: {result.ExpiresAt ?? "永久"}", "#6fcf6f", "#1a2a1a", "#2a4a2a");
         }
         else
         {
-            SetStatus($"✗ {result.Error ?? "许可证无效"}", "#cf6f6f", "#2a1a1a", "#4a2a2a");
+            SetStatus($"[FAIL] {result.Error ?? "许可证无效"}", "#cf6f6f", "#2a1a1a", "#4a2a2a");
         }
     }
 

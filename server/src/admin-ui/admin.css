@@ -61,12 +61,35 @@ a:hover { text-decoration: underline; }
   margin-top: 2px;
 }
 .sidebar nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 20px;
   color: var(--text-secondary);
   font-size: 13px;
   transition: background 0.15s, color 0.15s;
   border-left: 3px solid transparent;
+}
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nav-icon.filled { fill: currentColor; stroke: none; }
+.status-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .sidebar nav a:hover {
   background: rgba(255,255,255,0.04);
