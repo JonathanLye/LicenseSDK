@@ -1,5 +1,6 @@
 using System.Management;
 using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using LicenseSDK.Security;
 
@@ -21,7 +22,15 @@ public class FingerprintData
 /// <summary>Collects hardware fingerprints using WMI and system APIs.</summary>
 public static class FingerprintCollector
 {
-    // GetVolumeInformation is resolved via NativeResolver — no [DllImport]
+    // Volume serial uses direct P/Invoke — fingerprint collection is not security-sensitive
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern bool GetVolumeInformation(
+        string? rootPathName,
+        IntPtr volumeNameBuffer, int volumeNameSize,
+        out uint volumeSerialNumber,
+        out int maximumComponentLength,
+        out int fileSystemFlags,
+        IntPtr fileSystemNameBuffer, int fileSystemNameSize);
 
     public static FingerprintData Collect()
     {
@@ -114,24 +123,26 @@ public static class FingerprintCollector
     private static string? GetBiosSerial() =>
         QueryWmi("Win32_BIOS", "SerialNumber");
 
-    /// <summary>C: drive NTFS volume serial, with WMI fallback.</summary>
+    /// <summary>C: drive NTFS volume serial (kernel32), with WMI fallback.</summary>
     private static string? GetVolumeSerial()
     {
-        // Primary: kernel32.GetVolumeInformationW via NativeResolver
+        // Primary: kernel32.GetVolumeInformationW
         try
         {
-            if (NativeResolver.GetVolumeInformationW("C:\\", IntPtr.Zero, 0,
+            if (GetVolumeInformation("C:\\", IntPtr.Zero, 0,
                     out uint serial, out _, out _, IntPtr.Zero, 0))
             {
-                var result = FingerprintNormalizer.Normalize(serial.ToString("X8"));
-                if (result is not null) return result;
+                // Volume serial is a raw uint — keep as hex, only normalize to upper
+                var hex = serial.ToString("X8");
+                return string.IsNullOrWhiteSpace(hex) ? null : hex;
             }
         }
         catch { }
         // Fallback: WMI Win32_LogicalDisk
         try
         {
-            return QueryWmi("Win32_LogicalDisk WHERE DeviceID='C:'", "VolumeSerialNumber");
+            var wmiVal = QueryWmi("Win32_LogicalDisk WHERE DeviceID='C:'", "VolumeSerialNumber");
+            if (wmiVal is not null) return wmiVal.Trim().ToUpperInvariant();
         }
         catch { }
         return null;
@@ -151,22 +162,24 @@ public static class FingerprintCollector
         catch { return null; }
     }
 
-    /// <summary>Windows Product ID from registry, with WMI fallback.</summary>
+    /// <summary>Windows Product ID from registry (64-bit view), with WMI fallback.</summary>
     private static string? GetWindowsProductId()
     {
-        // Primary: registry HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductId
+        // Primary: registry with explicit 64-bit view to avoid WOW6432Node redirection
         try
         {
-            using var key = Registry.LocalMachine.OpenSubKey(
-                @"SOFTWARE\Microsoft\Windows NT\CurrentVersion", writable: false);
-            var result = FingerprintNormalizer.Normalize(key?.GetValue("ProductId")?.ToString());
-            if (result is not null) return result;
+            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+            using var key = baseKey.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", writable: false);
+            var raw = key?.GetValue("ProductId")?.ToString();
+            if (!string.IsNullOrWhiteSpace(raw))
+                return raw.Trim().ToUpperInvariant();
         }
         catch { }
-        // Fallback: WMI Win32_OperatingSystem
+        // Fallback: WMI Win32_OperatingSystem.SerialNumber
         try
         {
-            return QueryWmi("Win32_OperatingSystem", "SerialNumber");
+            var wmiVal = QueryWmi("Win32_OperatingSystem", "SerialNumber");
+            if (wmiVal is not null) return wmiVal.Trim().ToUpperInvariant();
         }
         catch { }
         return null;
