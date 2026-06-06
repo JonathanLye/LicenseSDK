@@ -114,18 +114,26 @@ public static class FingerprintCollector
     private static string? GetBiosSerial() =>
         QueryWmi("Win32_BIOS", "SerialNumber");
 
-    /// <summary>C: drive NTFS volume serial (kernel32 via NativeResolver). Stable across driver reinstall.</summary>
+    /// <summary>C: drive NTFS volume serial, with WMI fallback.</summary>
     private static string? GetVolumeSerial()
     {
+        // Primary: kernel32.GetVolumeInformationW via NativeResolver
         try
         {
             if (NativeResolver.GetVolumeInformationW("C:\\", IntPtr.Zero, 0,
                     out uint serial, out _, out _, IntPtr.Zero, 0))
             {
-                return FingerprintNormalizer.Normalize(serial.ToString("X8"));
+                var result = FingerprintNormalizer.Normalize(serial.ToString("X8"));
+                if (result is not null) return result;
             }
         }
-        catch { /* NativeResolver failed */ }
+        catch { }
+        // Fallback: WMI Win32_LogicalDisk
+        try
+        {
+            return QueryWmi("Win32_LogicalDisk WHERE DeviceID='C:'", "VolumeSerialNumber");
+        }
+        catch { }
         return null;
     }
 
@@ -143,16 +151,25 @@ public static class FingerprintCollector
         catch { return null; }
     }
 
-    /// <summary>Windows Product ID from registry.</summary>
+    /// <summary>Windows Product ID from registry, with WMI fallback.</summary>
     private static string? GetWindowsProductId()
     {
+        // Primary: registry HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductId
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey(
                 @"SOFTWARE\Microsoft\Windows NT\CurrentVersion", writable: false);
-            return FingerprintNormalizer.Normalize(key?.GetValue("ProductId")?.ToString());
+            var result = FingerprintNormalizer.Normalize(key?.GetValue("ProductId")?.ToString());
+            if (result is not null) return result;
         }
-        catch { return null; }
+        catch { }
+        // Fallback: WMI Win32_OperatingSystem
+        try
+        {
+            return QueryWmi("Win32_OperatingSystem", "SerialNumber");
+        }
+        catch { }
+        return null;
     }
 
     /// <summary>Returns all physical MAC addresses (sorted, deduped).</summary>

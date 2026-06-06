@@ -50,8 +50,9 @@ internal static class FingerprintNormalizer
         if (JunkPatterns.Any(j => raw.Contains(j)))
             return null;
 
-        // Reject all-same-character strings (e.g. "00000000", "FFFFFFFFFF")
-        if (raw.Length >= 6 && raw.Distinct().Count() <= 2)
+        // Reject strings composed of a single repeated character (e.g. "00000000", "FFFFFFFFFF")
+        // Allow any string with ≥2 distinct chars — this keeps valid hex serials like "00000001"
+        if (raw.Length >= 4 && raw.Distinct().Count() == 1)
             return null;
 
         return raw;
