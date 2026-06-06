@@ -1,4 +1,4 @@
-import { createSign, createHash } from 'crypto';
+import { createSign } from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { RSA_PRIVATE_KEY } from '../config.js';
 
@@ -9,14 +9,11 @@ export function signResponse(_req: Request, res: Response, next: NextFunction): 
 
   res.json = function (body: unknown) {
     const canonical = JSON.stringify(body);
-    const hash = createHash('sha256').update(canonical).digest('hex');
     const sign = createSign('sha256');
     sign.update(canonical);
     const signature = sign.sign(privateKey, 'base64');
 
     res.setHeader('X-Response-Signature', signature);
-    res.setHeader('X-Debug-Hash', hash);
-    res.setHeader('X-Debug-Body-Len', canonical.length.toString());
     return originalJson(body);
   };
 

@@ -18,11 +18,35 @@ Windows software licensing toolkit — hardware fingerprint-based activation, an
 
 ## Quick Start
 
+### 1. Generate RSA keys
+
+```bash
+cd server
+npm install
+node scripts/gen-rsa.js
+```
+
+This creates:
+- `.env-rsa` — append this line to your `.env`
+- `sdk-fragments.txt` — paste the C# fragments into `sdk/LicenseSDK/Crypto/RsaVerifier.cs`
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+cat .env-rsa >> .env   # add RSA private key
+# Edit .env with your Supabase credentials
+```
+
+### 3. Run database migration
+
+Execute `database/migrations/001_init.sql` in your Supabase SQL editor.
+
+### 4. Start services
+
 ```bash
 # Server
 cd server
-npm install
-# Set up .env with Supabase credentials (see .env.example)
 npm run dev
 
 # SDK
@@ -32,6 +56,10 @@ dotnet build sdk/LicenseSDK
 dotnet build demo/LicenseDemo
 dotnet run --project demo/LicenseDemo
 ```
+
+### Admin Panel
+
+Visit `http://localhost:3100/admin` after starting the server. Default admin secret is in `.env`.
 
 ## SDK Usage
 

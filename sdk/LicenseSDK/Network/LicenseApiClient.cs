@@ -79,18 +79,9 @@ public class LicenseApiClient : IDisposable
             if (response.Headers.TryGetValues("X-Response-Signature", out var sigValues))
                 respSig = sigValues.FirstOrDefault();
 
-            // Debug: compare server vs client body hash
-            string? serverHash = null;
-            if (response.Headers.TryGetValues("X-Debug-Hash", out var hashVals))
-                serverHash = hashVals.FirstOrDefault();
-            var clientHash = Convert.ToHexString(
-                System.Security.Cryptography.SHA256.HashData(
-                    System.Text.Encoding.UTF8.GetBytes(rawBody))).ToLowerInvariant();
-
             if (!RsaVerifier.Verify(rawBody, respSig))
             {
-                var detail = $"ServerHash={serverHash} ClientHash={clientHash} Match={serverHash==clientHash} BodyLen={rawBody.Length}";
-                return (default, null, $"Response signature verification failed | {detail}");
+                return (default, null, "Response signature verification failed");
             }
 
             var data = JsonSerializer.Deserialize<T>(rawBody, _json);
