@@ -10,6 +10,7 @@ const required = (key: string): string => {
 export const PORT = Number(process.env.PORT ?? 3100);
 export const SHARED_SECRET = required('SHARED_SECRET');
 export const ADMIN_SECRET = required('ADMIN_SECRET');
+export const RSA_PRIVATE_KEY = required('RSA_PRIVATE_KEY');
 
 export const supabase = createClient(
   required('SUPABASE_URL'),

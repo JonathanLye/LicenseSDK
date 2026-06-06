@@ -67,13 +67,24 @@ public class LicenseApiClient : IDisposable
 
             Guard(97);  // Check 24
 
+            var rawBody = await response.Content.ReadAsStringAsync();
+
             if (!response.IsSuccessStatusCode)
             {
-                var errBody = await response.Content.ReadAsStringAsync();
-                return (default, (int)response.StatusCode, errBody);
+                return (default, (int)response.StatusCode, rawBody);
             }
 
-            var data = await response.Content.ReadFromJsonAsync<T>(options: _json);
+            // Verify RSA response signature before trusting the data
+            string? respSig = null;
+            if (response.Headers.TryGetValues("X-Response-Signature", out var sigValues))
+                respSig = sigValues.FirstOrDefault();
+
+            if (!RsaVerifier.Verify(rawBody, respSig))
+            {
+                return (default, null, "Response signature verification failed");
+            }
+
+            var data = JsonSerializer.Deserialize<T>(rawBody, _json);
             return (data, null, null);
         }
         catch (HttpRequestException ex)

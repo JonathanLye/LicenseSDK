@@ -9,6 +9,7 @@ import { verifyRouter } from './routes/verify.js';
 import { heartbeatRouter } from './routes/heartbeat.js';
 import { deactivateRouter } from './routes/deactivate.js';
 import { adminRouter } from './routes/admin.js';
+import { signResponse } from './middleware/response-signing.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -16,6 +17,9 @@ app.use(express.json());
 
 // Serve admin management UI (static files)
 app.use('/admin', express.static(join(__dirname, 'admin-ui')));
+
+// Sign all API responses with RSA
+app.use('/api', signResponse);
 
 // Health check (no auth)
 app.get('/health', (_req, res) => res.json({ ok: true }));
