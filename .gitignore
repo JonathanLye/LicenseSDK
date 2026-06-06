@@ -36,3 +36,5 @@ desktop.ini
 sdk/obfuscated/
 *.log
 .claude/
+demo/obfuscated-demo/
+sdk/obfuscated/
